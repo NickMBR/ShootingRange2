@@ -8,12 +8,12 @@ Baixe o arquivo .zip e extraia o conteúdo para a pasta "common/GarrysMod/garrys
     git clone https://github.com/NickMBR/ShootingRange2.git
 
 # Utilização
-São necessários os seguites addons para funcionar:<br /><br />
+São necessários os seguites addons para funcionar:
 
 [Advanced Duplicator 2](https://github.com/wiremod/advdupe2)<br />
 [WeaponCore](http://steamcommunity.com/sharedfiles/filedetails/?id=452197127)<br />
 [DamageCore](http://steamcommunity.com/sharedfiles/filedetails/?id=217370580)<br />
-[ChatPrint](https://steamcommunity.com/sharedfiles/filedetails/?id=177705430)<br /><br />
+[ChatPrint](https://steamcommunity.com/sharedfiles/filedetails/?id=177705430)<br />
 [CW 2.0 Opcional](https://steamcommunity.com/sharedfiles/filedetails/349050451)
 
 # Dúvidas?
