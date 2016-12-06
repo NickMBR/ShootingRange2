@@ -1,0 +1,78 @@
+#shootingrange2/sr2_cores
+
+@name shootingrange2/sr2_cores
+@inputs PropMesa:entity
+@persist Tema:string
+@persist [BordaTela FundoTela Botoes BotaoHover BotaoPress BotaoDisable BtnSwitch BtnSwitchHover]:vector
+
+## SELECIONE UM TEMA OU CUSTOMIZE ABAIXO ##
+
+#Tema = "Default"
+Tema = "RedWhite"
+
+if (Tema == "Default")
+{
+    PropMesa:setColor(vec(200, 110, 0))
+    
+    BordaTela = vec(255, 136, 0)
+    FundoTela = vec(30)
+    
+    FundoLogo = vec(200)
+    TextoLogo = vec(30)
+    
+    PlacarTexto = vec(30)
+    PlacarInicio = vec(0,130,255)
+    PlacarTextoInicio = vec(210)
+    PlacarColuna1 = vec(210)
+    PlacarColuna2 = vec(160)
+    PlacarTextoColuna = vec(30)
+    PlacarTextoDestaque = vec(0, 255, 127)
+    
+    CorTexto = vec(230)
+    CorTextoDestaque = vec(0, 255, 127)
+    
+    Botoes = vec(0, 127, 255)
+    BotaoHover = vec(255, 136, 0)
+    BotaoPress = vec(0, 255, 127)
+    BotaoDisable = vec(130)
+    BotaoTexto = vec(230)
+    
+    BtnSwitch = vec(70)
+    BtnSwitchHover = vec(180)
+    
+    CaixaEscolha = vec(230,230,230)
+    CaixaEscolhaTexto = vec(30,30,30)
+}
+elseif (Tema == "RedWhite")
+{
+    PropMesa:setColor(vec(150, 30, 30))
+    
+    BordaTela = vec(220, 40, 40)
+    FundoTela = vec(230)
+    
+    FundoLogo = vec(220, 40, 40)
+    TextoLogo = vec(250)
+    
+    PlacarTexto = vec(30)
+    PlacarInicio = vec(220, 40, 40)
+    PlacarTextoInicio = vec(250)
+    PlacarColuna1 = vec(80)
+    PlacarColuna2 = vec(30)
+    PlacarTextoColuna = vec(250)
+    PlacarTextoDestaque = vec(0, 255, 127)
+    
+    CorTexto = vec(30)
+    CorTextoDestaque = vec(220, 40, 40)
+    
+    Botoes = vec(220, 40, 40)
+    BotaoHover = vec(150, 27, 27)
+    BotaoPress = vec(30)
+    BotaoDisable = vec(130)
+    BotaoTexto = vec(250)
+    
+    BtnSwitch = vec(70)
+    BtnSwitchHover = vec(180)
+    
+    CaixaEscolha = vec(30)
+    CaixaEscolhaTexto = vec(250)
+}

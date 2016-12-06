@@ -1,0 +1,139 @@
+#[
+        SHOOTING RANGE 2.0
+        BY NICKMBR
+]#
+
+@name Nomes EGP | Shooting Range 2 | N!kO Systems
+@inputs [T1 T2]:wirelink Pagina:string SingleMulti:string [P1 P2]:entity
+@persist LimpaTela TxtSize TxtSizeP2
+
+#include "shootingrange2/sr2_cores"
+
+if (first() | dupefinished())
+{
+    ### NAO MUDE NADA AQUI ###
+    T1:egpClear()
+    T1:egpDrawTopLeft(1)
+    
+    T2:egpClear()
+    T2:egpDrawTopLeft(1)
+}
+
+function void limpaTela()
+{
+    T1:egpClear()
+    T2:egpClear()
+    LimpaTela = 0
+}
+
+function void drawBorder()
+{
+    T1:egpBox(1, vec2(0), vec2(512))
+    T1:egpColor(1, BordaTela)
+    T1:egpBox(2, vec2(16), vec2(480))
+    T1:egpColor(2, FundoTela)
+    
+    T2:egpBox(1, vec2(0), vec2(512))
+    T2:egpColor(1, BordaTela)
+    T2:egpBox(2, vec2(16), vec2(480))
+    T2:egpColor(2, FundoTela)
+}
+
+function void drawHeader()
+{
+    drawBorder()
+    T1:egpBox(3, vec2(110,210), vec2(300, 80))
+    T1:egpColor(3, FundoLogo)
+    T1:egpAngle(3, 2)
+    
+    T1:egpText(4, "Shooting Range 2.0", vec2(256, 216))
+    T1:egpColor(4, TextoLogo)
+    T1:egpAlign(4, 1)
+    T1:egpSize(4, 30)
+    T1:egpFont(4, "Arial")
+    
+    T1:egpText(5, "By: NickMBR", vec2(256, 246))
+    T1:egpColor(5, TextoLogo)
+    T1:egpAlign(5, 1)
+    T1:egpSize(5, 20)
+    T1:egpFont(5, "Arial")
+    
+    T2:egpBox(3, vec2(110,210), vec2(300, 80))
+    T2:egpColor(3, FundoLogo)
+    T2:egpAngle(3, 2)
+    
+    T2:egpText(4, "Shooting Range 2.0", vec2(256, 216))
+    T2:egpColor(4, TextoLogo)
+    T2:egpAlign(4, 1)
+    T2:egpSize(4, 30)
+    T2:egpFont(4, "Arial")
+    
+    T2:egpText(5, "By: NickMBR", vec2(256, 246))
+    T2:egpColor(5, TextoLogo)
+    T2:egpAlign(5, 1)
+    T2:egpSize(5, 20)
+    T2:egpFont(5, "Arial")
+}
+
+interval(150)
+if (Pagina & ~Pagina) {LimpaTela = 1}
+
+if (Pagina == "Inicial")
+{
+    if (LimpaTela == 1) {limpaTela()}
+    drawHeader()
+}
+if (Pagina == "EmProgresso" || Pagina == "JogoFinalizado")
+{
+    if (LimpaTela == 1) {limpaTela()}
+    
+    if (SingleMulti == "Single")
+    {
+        drawBorder()
+        local P1Name = P1:name():explode(" ")
+        
+        if (P1Name[1, string]:length() <= 8){TxtSize = 100}
+        elseif (P1Name[1, string]:length() > 8 && P1Name[1, string]:length() <= 12) {TxtSize = 65}
+        elseif (P1Name[1, string]:length() > 12) {TxtSize = 40}
+        
+        T1:egpText(3, P1Name[1, string], vec2(256, 216))
+        T1:egpColor(3, CorTextoDestaque)
+        T1:egpAlign(3, 1)
+        T1:egpSize(3, TxtSize)
+        T1:egpFont(3, "Arial")
+        
+        T2:egpText(3, P1Name[1, string], vec2(256, 216))
+        T2:egpColor(3, CorTextoDestaque)
+        T2:egpAlign(3, 1)
+        T2:egpSize(3, TxtSize)
+        T2:egpFont(3, "Arial")
+    }
+    elseif (SingleMulti == "Multi")
+    {
+        drawBorder()
+        
+        local P1Name = P1:name():explode(" ")
+        local P2Name = P2:name():explode(" ")
+        
+        if (P1Name[1, string]:length() <= 8){TxtSize = 100}
+        elseif (P1Name[1, string]:length() > 8 && P1Name[1, string]:length() <= 12) {TxtSize = 65}
+        elseif (P1Name[1, string]:length() > 12) {TxtSize = 40}
+        
+        if (P2Name[1, string]:length() <= 8){TxtSizeP2 = 100}
+        elseif (P2Name[1, string]:length() > 8 && P2Name[1, string]:length() <= 12) {TxtSizeP2 = 65}
+        elseif (P2Name[1, string]:length() > 12) {TxtSizeP2 = 40}
+        
+        T1:egpText(3, P1Name[1, string], vec2(256, 216))
+        T1:egpColor(3, CorTextoDestaque)
+        T1:egpAlign(3, 1)
+        T1:egpSize(3, TxtSize)
+        T1:egpFont(3, "Arial")
+        
+        T2:egpText(3, P2Name[1, string], vec2(256, 216))
+        T2:egpColor(3, CorTextoDestaque)
+        T2:egpAlign(3, 1)
+        T2:egpSize(3, TxtSize)
+        T2:egpFont(3, "Arial")
+        
+    }
+}

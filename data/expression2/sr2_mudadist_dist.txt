@@ -1,0 +1,33 @@
+#[
+        SHOOTING RANGE 2.0
+        BY NICKMBR
+]#
+
+@name Muda Distancia | Shooting Range 2 | N!kO Systems
+@inputs [P1 P2]:entity Distancia:string
+
+if (Distancia == "Short")
+{  
+    P1:propNotSolid(0)
+    P1:setAlpha(255)
+    P2:propNotSolid(0)
+    P2:setAlpha(255)
+}
+
+if (Distancia == "Normal")
+{  
+
+    P1:propNotSolid(1)
+    P1:setAlpha(0)
+    P2:propNotSolid(0)
+    P2:setAlpha(255)
+}
+
+if (Distancia == "Long")
+{  
+
+    P1:propNotSolid(1)
+    P1:setAlpha(0)
+    P2:propNotSolid(1)
+    P2:setAlpha(0)
+}

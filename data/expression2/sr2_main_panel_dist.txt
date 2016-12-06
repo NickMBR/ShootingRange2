@@ -1,0 +1,1179 @@
+#[
+        SHOOTING RANGE 2.0
+        BY NICKMBR
+        
+        DATA DE LANCAMENTO: 25/04/2016
+]#
+
+@name Main Painel | Shooting Range 2 | N!kO Systems
+
+# Sistema I/O
+@inputs S:wirelink User:entity [LB_UID]:array LB_Details:table 
+@inputs Init Inicio PlacarLoaded TempoRestante OnlyBullets
+@outputs SingleMulti:string Start Target:entity Pagina:string
+
+# Envia Distancia para o controlador de distancia
+@outputs Distancia:string Aleatorio HSMode RequestLB WeaponMode:string
+
+# Envia o Tempo Maximo para o controlador do jogo
+@outputs MaxTime [Ply1 Ply2]:entity PlacarUID:string AFKCount
+
+# Tabela global de pontos entre as E2s
+@persist PointsTable:gtable
+
+# Variaveis Persistentes
+@persist Cursor:vector2 Pagina:string [Target P2Ent]:entity GameMode BTN BTN2 Dist TempLimpa
+@persist AllowedWeps:array Weapon [PosA PosB]:vector2 AFKCount PlacarUID:string PlacarCount
+@persist ButtonsID:array BuildTabela ButtonCount
+
+#include "shootingrange2/sr2_cores"
+
+# Define o Intervalo de Repeticao
+interval(150)
+
+if (dupefinished())
+{   
+    S:egpClear()
+    S:egpDrawTopLeft(1)
+    timer("solveEGPbug", 2500)
+}
+
+if(first() | duped()) 
+{
+    ### NAO MUDE NADA AQUI ###
+    GameMode = isSinglePlayer()
+    Target = noentity()
+    P2Ent = noentity()
+    
+    Distancia = "Short"
+    Dist = 1
+    MaxTime = 1
+    TempLimpa = 1
+    Weapon = 1
+    PlacarUID = ""
+    PlacarCount = 0
+    BuildTabela = 1
+    ButtonCount = 0
+    
+    #Pagina = "Inicial"
+    
+    PointsTable = gTable("PlyPoints",0)
+    
+    # Define as Armas Permitidas
+    # Construcao: Entidade|Nome
+    AllowedWeps = array("weapon_pistol|Pistola", "weapon_357|Revolver", "weapon_shotgun|Shotgun", "weapon_smg|SMG", "weapon_ar2|AR2", "cw|CW Pack")
+}
+
+# Detecta se o botao foi pressionado e muda a cor
+function string buttonPress(BtnID)
+{
+    PosA = S:egpPos(BtnID)
+    PosB = S:egpPos(BtnID) + S:egpSize(BtnID)
+    
+    local BtnColorPress = vec(0)
+    local BtnColorHover = vec(0)
+    local BtnColor = vec(0)
+    
+    #25, 28
+    if (BtnID != 25 && BtnID != 28) {BtnColorPress = BotaoPress, BtnColorHover = BotaoHover, BtnColor = Botoes}
+    else {BtnColorPress = BotaoPress, BtnColorHover = BtnSwitchHover, BtnColor = BtnSwitch}
+    
+    if (Target:keyUse() && inrange(Cursor, PosA, PosB)) {S:egpColor(BtnID, BtnColorPress), return "Pressed"}
+    elseif (inrange(Cursor, PosA, PosB)) {S:egpColor(BtnID, BtnColorHover)}
+    else {S:egpColor(BtnID, BtnColor)}
+    return ""
+}
+
+function void buildPlacar()
+{
+    local Aux = 1
+    local Aux2 = 0
+    local Pos = 0
+    ButtonsID = array()
+    
+    for (PlacarCount = 1, 6, 1)
+    {
+        if (LB_Details[LB_UID[PlacarCount, string], table]["Name", string] != "")
+        {
+            if (Aux == 1)
+            {
+                S:egpText(PlacarCount+90, LB_Details[LB_UID[PlacarCount, string], table]["Name", string], vec2(50, 180))
+                S:egpColor(PlacarCount+90, PlacarTextoDestaque)
+                S:egpAlign(PlacarCount+90, 0)
+                S:egpSize(PlacarCount+90, 25)
+                S:egpFont(PlacarCount+90, "Arial")
+                
+                S:egpText(PlacarCount+91, ""+LB_Details[LB_UID[PlacarCount, string], table]["Pontos", number], vec2(285, 175))
+                S:egpColor(PlacarCount+91, PlacarTextoDestaque)
+                S:egpAlign(PlacarCount+91, 0)
+                S:egpSize(PlacarCount+91, 32)
+                S:egpFont(PlacarCount+91, "Arial")
+                
+                S:egpBox(PlacarCount+92, vec2(418,173), vec2(35, 35))
+                S:egpColor(PlacarCount+92, Botoes)
+                ButtonsID:pushNumber(PlacarCount+92)
+                
+                S:egpText(PlacarCount+93, "+", vec2(422, 166))
+                S:egpColor(PlacarCount+93, BotaoTexto)
+                S:egpAlign(PlacarCount+93, 0)
+                S:egpSize(PlacarCount+93, 50)
+                S:egpFont(PlacarCount+93, "Arial")
+                
+                Aux = 0
+            }
+            else
+            {
+                Aux2 += 4
+                Pos += 40
+                S:egpText(PlacarCount+90+Aux2, LB_Details[LB_UID[PlacarCount, string], table]["Name", string], vec2(50, 180+Pos))
+                S:egpColor(PlacarCount+90+Aux2, PlacarTextoColuna)
+                S:egpAlign(PlacarCount+90+Aux2, 0)
+                S:egpSize(PlacarCount+90+Aux2, 25)
+                S:egpFont(PlacarCount+90+Aux2, "Arial")
+                
+                S:egpText(PlacarCount+91+Aux2, ""+LB_Details[LB_UID[PlacarCount, string], table]["Pontos", number], vec2(285, 175+Pos))
+                S:egpColor(PlacarCount+91+Aux2, PlacarTextoColuna)
+                S:egpAlign(PlacarCount+91+Aux2, 0)
+                S:egpSize(PlacarCount+91+Aux2, 32)
+                S:egpFont(PlacarCount+91+Aux2, "Arial")
+                
+                S:egpBox(PlacarCount+92+Aux2, vec2(418,173+Pos), vec2(35, 35))
+                S:egpColor(PlacarCount+92+Aux2, Botoes)
+                ButtonsID:pushNumber(PlacarCount+92+Aux2)
+                
+                S:egpText(PlacarCount+93+Aux2, "+", vec2(422, 166+Pos))
+                S:egpColor(PlacarCount+93+Aux2, BotaoTexto)
+                S:egpAlign(PlacarCount+93+Aux2, 0)
+                S:egpSize(PlacarCount+93+Aux2, 50)
+                S:egpFont(PlacarCount+93+Aux2, "Arial")
+            }
+        }
+    }
+}
+
+function void buildScreenHeader()
+{
+    S:egpBox(1, vec2(0), vec2(512))
+    S:egpColor(1, BordaTela)
+    
+    S:egpBox(2, vec2(16), vec2(480))
+    S:egpColor(2, FundoTela)
+    
+    S:egpBox(3, vec2(110,32), vec2(300, 80))
+    S:egpColor(3, FundoLogo)
+    S:egpAngle(3, 2)
+    
+    S:egpText(4, "Shooting Range 2.0", vec2(256, 40))
+    S:egpColor(4, TextoLogo)
+    S:egpAlign(4, 1)
+    S:egpSize(4, 30)
+    S:egpFont(4, "Arial")
+    
+    S:egpText(5, "By: NickMBR", vec2(256, 70))
+    S:egpColor(5, TextoLogo)
+    S:egpAlign(5, 1)
+    S:egpSize(5, 20)
+    S:egpFont(5, "Arial")
+}
+
+function string makeNiceName()
+{
+    local WeaponName = array()
+    foreach (K, V:string=AllowedWeps)
+    {
+        WeaponName = V:explode("|")
+        if(WeaponName[1, string] == LB_Details[PlacarUID, table]["Arma", string])
+        {
+            return WeaponName[2, string]
+        }
+    }
+    return LB_Details[PlacarUID, table]["Arma", string]
+}
+
+# Sistema AFK
+function void beginAFK()
+{
+    timer("afkcount", 1000)
+    if (clk("afkcount")) {AFKCount++}
+    
+    if(AFKCount >= 30)
+    {
+        TempLimpa = 1
+        Target = noentity()
+        Pagina = "Inicial"
+        AFKCount = 0
+    }
+}
+
+function void limpaTela()
+{
+    S:egpClear()
+    TempLimpa = 0
+}
+
+# Resolve um bug da EGP
+if(clk("solveEGPbug")) {Pagina = "Inicial", stoptimer("solveEGPbug")}
+
+# O Jogador que pressionar "E" na Pagina Inicial sera o controlador
+if (Target == noentity()) {if (User:keyUse()){Target = User}}
+
+# Define o controlador da tela
+Cursor = S:egpCursor(Target)
+
+# Construcao da Tela e das Paginas
+# So Altere se Souber o que esta Fazendo
+
+if (changed(Pagina)) {TempLimpa = 1}
+
+if (Pagina == "Inicial")
+{
+    beginAFK()
+    if (TempLimpa == 1) 
+    {
+        limpaTela(), AFKCount = 0, RequestLB = 0, Target = noentity(), Ply1 = noentity(), Ply2 = noentity()
+    
+        buildScreenHeader()
+        
+        #Botao Jogar | Pagina Inicial
+        S:egpBox(7, vec2(55,160), vec2(400, 80))
+        S:egpColor(7, Botoes)
+        
+        S:egpText(8, "Jogar", vec2(256, 167))
+        S:egpColor(8, BotaoTexto)
+        S:egpAlign(8, 1)
+        S:egpSize(8, 60)
+        S:egpFont(8, "Arial")
+        
+        S:egpText(9, "Aperte 'E' para Interagir com a Tela", vec2(256, 380))
+        S:egpColor(9, CorTexto)
+        S:egpAlign(9, 1)
+        S:egpSize(9, 30)
+        S:egpFont(9, "Arial")
+        
+        #Botao Placar | Pagina Inicial
+        S:egpBox(10, vec2(55,260), vec2(400, 90))
+        S:egpColor(10, Botoes)
+        
+        S:egpText(11, "Ver Placar", vec2(256, 280))
+        S:egpColor(11, BotaoTexto)
+        S:egpAlign(11, 1)
+        S:egpSize(11, 50)
+        S:egpFont(11, "Arial")
+    }
+    
+    if (buttonPress(7) == "Pressed") {timer("modojogo", 300)}
+    if (clk("modojogo")) { TempLimpa = 1, Pagina = "ModoJogo" }
+    
+    if (buttonPress(10) == "Pressed") {timer("placar", 300)}
+    if (clk("placar")) { TempLimpa = 1, Pagina = "Placar", RequestLB = 1 }
+}
+
+elseif (Pagina == "Placar")
+{
+    beginAFK()
+    if (TempLimpa == 1) 
+    {
+        limpaTela(), AFKCount = 0, RequestLB = 0, BuildTabela = 1
+    
+        buildScreenHeader()
+        
+        S:egpBox(6, vec2(45,130), vec2(420, 40))
+        S:egpColor(6, PlacarInicio)
+        
+        S:egpText(7, "Nome", vec2(50, 145))
+        S:egpColor(7, PlacarTextoInicio)
+        S:egpAlign(7, 0)
+        S:egpSize(7, 22)
+        S:egpFont(7, "Arial")
+        
+        S:egpText(20, "Pontos", vec2(280, 145))
+        S:egpColor(20, PlacarTextoInicio)
+        S:egpAlign(20, 0)
+        S:egpSize(20, 22)
+        S:egpFont(20, "Arial")
+        
+        S:egpText(21, "Infos", vec2(410, 145))
+        S:egpColor(21, PlacarTextoInicio)
+        S:egpAlign(21, 0)
+        S:egpSize(21, 22)
+        S:egpFont(21, "Arial")
+        
+        S:egpBox(8, vec2(45,170), vec2(420, 40))
+        S:egpColor(8, PlacarColuna2)
+        
+        S:egpBox(9, vec2(45,210), vec2(420, 40))
+        S:egpColor(9, PlacarColuna1)
+        
+        S:egpBox(10, vec2(45,250), vec2(420, 40))
+        S:egpColor(10, PlacarColuna2)
+        
+        S:egpBox(11, vec2(45,290), vec2(420, 40))
+        S:egpColor(11, PlacarColuna1)
+        
+        S:egpBox(12, vec2(45,330), vec2(420, 40))
+        S:egpColor(12, PlacarColuna2)
+        
+        S:egpBox(13, vec2(45,370), vec2(420, 40))
+        S:egpColor(13, PlacarColuna1)
+        
+        S:egpBox(14, vec2(45,420), vec2(420, 65))
+        S:egpColor(14, Botoes)
+        
+        S:egpText(15, "Voltar", vec2(256, 425))
+        S:egpColor(15, BotaoTexto)
+        S:egpAlign(15, 1)
+        S:egpSize(15, 55)
+        S:egpFont(15, "Arial")
+    }
+    
+    # Previne que a montagem do placar seja feita multiplas vezes
+    if (BuildTabela == 1 && PlacarLoaded == 1) {buildPlacar(), timer("corta", 100)}
+    if(clk("corta")) {BuildTabela = 0}
+    
+    # Botoes para mais informacoes
+    for (ButtonCount = 1, ButtonsID:count(), 1)
+    {
+        if (Target:keyUse() && inrange(Cursor, S:egpPos(ButtonsID[ButtonCount, number]), S:egpPos(ButtonsID[ButtonCount, number]) + S:egpSize(ButtonsID[ButtonCount, number])))
+        { TempLimpa = 1, PlacarUID = LB_UID[ButtonCount, string], Pagina = "InfosPlacar", RequestLB = 0 }
+    }
+   
+    #Botao Voltar
+    if (buttonPress(14) == "Pressed") {timer("voltar3", 300)}
+    if (clk("voltar3")) { TempLimpa = 1, Pagina = "Inicial", RequestLB = 0 }
+}
+
+elseif (Pagina == "InfosPlacar")
+{
+    beginAFK()
+    if (TempLimpa == 1) 
+    {
+        limpaTela(), AFKCount = 0
+        
+        S:egpBox(1, vec2(0), vec2(512))
+        S:egpColor(1, BordaTela)
+        
+        S:egpBox(2, vec2(16), vec2(480))
+        S:egpColor(2, FundoTela)
+        
+        #Inicio Placar
+        S:egpBox(3, vec2(45,30), vec2(420, 40))
+        S:egpColor(3, PlacarInicio)
+        
+        S:egpText(4, LB_Details[PlacarUID, table]["Name", string], vec2(256, 35))
+        S:egpColor(4, PlacarTextoInicio)
+        S:egpAlign(4, 1)
+        S:egpSize(4, 30)
+        S:egpFont(4, "Arial")
+        
+        #SteamID
+        S:egpBox(5, vec2(45,70), vec2(420, 30))
+        S:egpColor(5, PlacarColuna1)
+        
+        S:egpText(6, "SteamID:", vec2(50, 73))
+        S:egpColor(6, PlacarTextoColuna)
+        S:egpAlign(6, 0)
+        S:egpSize(6, 25)
+        S:egpFont(6, "Arial")
+        
+        S:egpText(7, LB_Details[PlacarUID, table]["SID", string], vec2(460, 77))
+        S:egpColor(7, PlacarTextoColuna)
+        S:egpAlign(7, 2)
+        S:egpSize(7, 18)
+        S:egpFont(7, "Arial")
+        
+        #Pontos
+        S:egpBox(8, vec2(45,100), vec2(420, 30))
+        S:egpColor(8, PlacarColuna2)
+        
+        S:egpText(9, "Pontos:", vec2(50, 103))
+        S:egpColor(9, PlacarTextoColuna)
+        S:egpAlign(9, 0)
+        S:egpSize(9, 25)
+        S:egpFont(9, "Arial")
+        
+        S:egpText(10, ""+LB_Details[PlacarUID, table]["Pontos", number], vec2(460, 103))
+        S:egpColor(10, PlacarTextoColuna)
+        S:egpAlign(10, 2)
+        S:egpSize(10, 25)
+        S:egpFont(10, "Arial")
+        
+        #Arma Usada
+        S:egpBox(11, vec2(45,130), vec2(420, 30))
+        S:egpColor(11, PlacarColuna1)
+        
+        S:egpText(12, "Arma Usada:", vec2(50, 133))
+        S:egpColor(12, PlacarTextoColuna)
+        S:egpAlign(12, 0)
+        S:egpSize(12, 25)
+        S:egpFont(12, "Arial")
+        
+        S:egpText(13, makeNiceName(), vec2(460, 133))
+        S:egpColor(13, PlacarTextoColuna)
+        S:egpAlign(13, 2)
+        S:egpSize(13, 25)
+        S:egpFont(13, "Arial")
+        
+        #Distancia
+        S:egpBox(14, vec2(45,160), vec2(420, 30))
+        S:egpColor(14, PlacarColuna2)
+        
+        S:egpText(15, "Distancia:", vec2(50, 163))
+        S:egpColor(15, PlacarTextoColuna)
+        S:egpAlign(15, 0)
+        S:egpSize(15, 25)
+        S:egpFont(15, "Arial")
+        
+        S:egpText(16, LB_Details[PlacarUID, table]["Distancia", string], vec2(460, 163))
+        S:egpColor(16, PlacarTextoColuna)
+        S:egpAlign(16, 2)
+        S:egpSize(16, 25)
+        S:egpFont(16, "Arial")
+        
+        #Precisao
+        S:egpBox(17, vec2(45,190), vec2(420, 30))
+        S:egpColor(17, PlacarColuna1)
+        
+        S:egpText(18, "Precisao:", vec2(50, 193))
+        S:egpColor(18, PlacarTextoColuna)
+        S:egpAlign(18, 0)
+        S:egpSize(18, 25)
+        S:egpFont(18, "Arial")
+        
+        S:egpText(19, ""+LB_Details[PlacarUID, table]["Precision", number]+" %", vec2(460, 193))
+        S:egpColor(19, PlacarTextoColuna)
+        S:egpAlign(19, 2)
+        S:egpSize(19, 25)
+        S:egpFont(19, "Arial")
+        
+        #HPK
+        S:egpBox(20, vec2(45,220), vec2(420, 30))
+        S:egpColor(20, PlacarColuna2)
+        
+        S:egpText(21, "HPK:", vec2(50, 223))
+        S:egpColor(21, PlacarTextoColuna)
+        S:egpAlign(21, 0)
+        S:egpSize(21, 25)
+        S:egpFont(21, "Arial")
+        
+        S:egpText(22, ""+LB_Details[PlacarUID, table]["HPK", number]+" %", vec2(460, 223))
+        S:egpColor(22, PlacarTextoColuna)
+        S:egpAlign(22, 2)
+        S:egpSize(22, 25)
+        S:egpFont(22, "Arial")
+        
+        #Alvos Derrubados
+        S:egpBox(23, vec2(45,250), vec2(420, 30))
+        S:egpColor(23, PlacarColuna1)
+        
+        S:egpText(24, "Alvos Atingidos:", vec2(50, 253))
+        S:egpColor(24, PlacarTextoColuna)
+        S:egpAlign(24, 0)
+        S:egpSize(24, 25)
+        S:egpFont(24, "Arial")
+        
+        S:egpText(25, ""+LB_Details[PlacarUID, table]["Alvos", number], vec2(460, 253))
+        S:egpColor(25, PlacarTextoColuna)
+        S:egpAlign(25, 2)
+        S:egpSize(25, 25)
+        S:egpFont(25, "Arial")
+        
+        #Detalhes Adicionais
+        S:egpBox(26, vec2(45,280), vec2(420, 40))
+        S:egpColor(26, PlacarInicio)
+        
+        S:egpText(27, "Detalhes Adicionais", vec2(256, 285))
+        S:egpColor(27, PlacarTextoInicio)
+        S:egpAlign(27, 1)
+        S:egpSize(27, 30)
+        S:egpFont(27, "Arial")
+        
+        #Headshots
+        S:egpBox(28, vec2(45,320), vec2(210, 30))
+        S:egpColor(28, PlacarColuna2)
+        
+        S:egpText(29, "Headshots:", vec2(50, 323))
+        S:egpColor(29, PlacarTextoColuna)
+        S:egpAlign(29, 0)
+        S:egpSize(29, 25)
+        S:egpFont(29, "Arial")
+        
+        S:egpText(30, ""+LB_Details[PlacarUID, table]["Headshots", number], vec2(250, 323))
+        S:egpColor(30, PlacarTextoColuna)
+        S:egpAlign(30, 2)
+        S:egpSize(30, 25)
+        S:egpFont(30, "Arial")
+        
+        #Chest Shots
+        S:egpBox(31, vec2(255,320), vec2(210, 30))
+        S:egpColor(31, PlacarColuna1)
+        
+        S:egpText(32, "Peito:", vec2(260, 323))
+        S:egpColor(32, PlacarTextoColuna)
+        S:egpAlign(32, 0)
+        S:egpSize(32, 25)
+        S:egpFont(32, "Arial")
+        
+        S:egpText(33, ""+LB_Details[PlacarUID, table]["Chest", number], vec2(460, 323))
+        S:egpColor(33, PlacarTextoColuna)
+        S:egpAlign(33, 2)
+        S:egpSize(33, 25)
+        S:egpFont(33, "Arial")
+        
+        #Torso Shots
+        S:egpBox(34, vec2(45,350), vec2(210, 30))
+        S:egpColor(34, PlacarColuna1)
+        
+        S:egpText(35, "Estomago:", vec2(50, 353))
+        S:egpColor(35, PlacarTextoColuna)
+        S:egpAlign(35, 0)
+        S:egpSize(35, 25)
+        S:egpFont(35, "Arial")
+        
+        S:egpText(36, ""+LB_Details[PlacarUID, table]["Torso", number], vec2(250, 353))
+        S:egpColor(36, PlacarTextoColuna)
+        S:egpAlign(36, 2)
+        S:egpSize(36, 25)
+        S:egpFont(36, "Arial")
+        
+        #Legs Shots
+        S:egpBox(37, vec2(255,350), vec2(210, 30))
+        S:egpColor(37, PlacarColuna2)
+        
+        S:egpText(38, "Pernas:", vec2(260, 353))
+        S:egpColor(38, PlacarTextoColuna)
+        S:egpAlign(38, 0)
+        S:egpSize(38, 25)
+        S:egpFont(38, "Arial")
+        
+        S:egpText(39, ""+LB_Details[PlacarUID, table]["Legs", number], vec2(460, 353))
+        S:egpColor(39, PlacarTextoColuna)
+        S:egpAlign(39, 2)
+        S:egpSize(39, 25)
+        S:egpFont(39, "Arial")
+        
+        #Erros
+        S:egpBox(40, vec2(45,380), vec2(210, 30))
+        S:egpColor(40, PlacarColuna2)
+        
+        S:egpText(41, "Erros:", vec2(50, 383))
+        S:egpColor(41, PlacarTextoColuna)
+        S:egpAlign(41, 0)
+        S:egpSize(41, 25)
+        S:egpFont(41, "Arial")
+        
+        S:egpText(42, ""+LB_Details[PlacarUID, table]["Erros", number], vec2(250, 383))
+        S:egpColor(42, PlacarTextoColuna)
+        S:egpAlign(42, 2)
+        S:egpSize(42, 25)
+        S:egpFont(42, "Arial")
+        
+        #Tempo
+        S:egpBox(43, vec2(255,380), vec2(210, 30))
+        S:egpColor(43, PlacarColuna1)
+        
+        S:egpText(44, "Tempo:", vec2(260, 383))
+        S:egpColor(44, PlacarTextoColuna)
+        S:egpAlign(44, 0)
+        S:egpSize(44, 25)
+        S:egpFont(44, "Arial")
+        
+        S:egpText(45, ""+LB_Details[PlacarUID, table]["Tempo", number]/60+" min", vec2(460, 383))
+        S:egpColor(45, PlacarTextoColuna)
+        S:egpAlign(45, 2)
+        S:egpSize(45, 25)
+        S:egpFont(45, "Arial")
+        
+        #Botao Voltar
+        S:egpBox(46, vec2(45,420), vec2(420, 65))
+        S:egpColor(46, Botoes)
+        
+        S:egpText(47, "Voltar", vec2(256, 425))
+        S:egpColor(47, BotaoTexto)
+        S:egpAlign(47, 1)
+        S:egpSize(47, 55)
+        S:egpFont(47, "Arial")
+    }
+    
+    if (buttonPress(46) == "Pressed") {timer("voltar5", 300)}
+    if (clk("voltar5")) { TempLimpa = 1, Pagina = "Placar", RequestLB = 0 }
+}
+
+# Funcoes da Pagina de Modo de Jogo
+elseif (Pagina == "ModoJogo")
+{
+    if (TempLimpa == 1) {limpaTela(), AFKCount = 0}
+    beginAFK()
+    
+    buildScreenHeader()
+    
+    S:egpText(9, "Escolha um Modo:", vec2(256, 190))
+    S:egpColor(9, CorTexto)
+    S:egpAlign(9, 1)
+    S:egpSize(9, 30)
+    S:egpFont(9, "Arial")
+    
+    local OlaName = Target:name():explode(" ")
+    S:egpText(15, "Ola, "+OlaName[1, string], vec2(256, 140))
+    S:egpColor(15, CorTexto)
+    S:egpAlign(15, 1)
+    S:egpSize(15, 40)
+    S:egpFont(15, "Arial")
+    
+    if (GameMode == 1)
+    {
+        #Botao SinglePlayer
+        S:egpBox(10, vec2(80,230), vec2(350, 70))
+        S:egpColor(10, Botoes)
+        
+        S:egpText(11, "SinglePlayer", vec2(256, 240))
+        S:egpColor(11, BotaoTexto)
+        S:egpAlign(11, 1)
+        S:egpSize(11, 50)
+        S:egpFont(11, "Arial")
+        
+        #Botao MultiPlayer
+        S:egpBox(12, vec2(80,310), vec2(350, 70))
+        S:egpColor(12, BotaoDisable)
+        
+        S:egpText(13, "MultiPlayer", vec2(256, 320))
+        S:egpColor(13, BotaoTexto)
+        S:egpAlign(13, 1)
+        S:egpSize(13, 50)
+        S:egpFont(13, "Arial")
+        
+        S:egpText(14, "-- MULTIPLAYER INDISPONIVEL --", vec2(256, 420))
+        S:egpColor(14, CorTexto)
+        S:egpAlign(14, 1)
+        S:egpSize(14, 20)
+        S:egpFont(14, "Arial")
+        
+        if (buttonPress(10) == "Pressed") {timer("pag_single", 300)}
+        if (clk("pag_single")) { TempLimpa = 1, SingleMulti = "Single", Pagina = "Configure" }
+    }
+    else
+    {
+        #Botao SinglePlayer
+        S:egpBox(10, vec2(80,230), vec2(350, 70))
+        S:egpColor(10, Botoes)
+        
+        S:egpText(11, "SinglePlayer", vec2(256, 240))
+        S:egpColor(11, BotaoTexto)
+        S:egpAlign(11, 1)
+        S:egpSize(11, 50)
+        S:egpFont(11, "Arial")
+        
+        #Botao MultiPlayer
+        S:egpBox(12, vec2(80,310), vec2(350, 70))
+        S:egpColor(12, Botoes)
+        
+        S:egpText(13, "MultiPlayer", vec2(256, 320))
+        S:egpColor(13, BotaoTexto)
+        S:egpAlign(13, 1)
+        S:egpSize(13, 50)
+        S:egpFont(13, "Arial")
+        
+        if (buttonPress(10) == "Pressed") {timer("pag_single", 300)}
+        if (clk("pag_single")) { TempLimpa = 1, SingleMulti = "Single", Pagina = "Configure" }
+        
+        if (buttonPress(12) == "Pressed") {timer("pag_multi", 300)}
+        if (clk("pag_multi")) { TempLimpa = 1, SingleMulti = "Multi", Pagina = "Player2" }
+    }
+}
+
+elseif (Pagina == "Player2")
+{
+    if (TempLimpa == 1) {limpaTela(), AFKCount = 0}
+    beginAFK()
+    
+    buildScreenHeader()
+    
+    S:egpText(6, "Aguardando Segundo Jogador", vec2(256, 190))
+    S:egpColor(6, CorTexto)
+    S:egpAlign(6, 1)
+    S:egpSize(6, 30)
+    S:egpFont(6, "Arial")
+    
+    S:egpText(7, "Pressionar o Botao:", vec2(256, 220))
+    S:egpColor(7, CorTexto)
+    S:egpAlign(7, 1)
+    S:egpSize(7, 30)
+    S:egpFont(7, "Arial")
+    
+    #Botao Player2
+    S:egpBox(8, vec2(80,280), vec2(350, 80))
+    S:egpColor(8, Botoes)
+    
+    S:egpText(9, "Player2", vec2(256, 295))
+    S:egpColor(9, BotaoTexto)
+    S:egpAlign(9, 1)
+    S:egpSize(9, 50)
+    S:egpFont(9, "Arial")
+    
+    Pos1 = S:egpPos(8)
+    Pos2 = S:egpPos(8) + S:egpSize(8)
+    
+    local P2User = User
+    local P2Cursor = S:egpCursor(P2User)
+    
+    if (P2User:keyUse() && P2User != Target && inrange(P2Cursor, Pos1, Pos2))
+    {
+        S:egpColor(8, BotaoPress)
+        P2Ent = P2User
+        timer("pag_config", 300)
+    }
+    else
+    {
+        S:egpColor(8, Botoes)
+    }
+    if (clk("pag_config")) { TempLimpa = 1, Pagina = "Configure" }
+}
+
+# Pagina de Configuracoes
+elseif (Pagina == "Configure")
+{
+    if (TempLimpa == 1) {limpaTela(), AFKCount = 0}
+    beginAFK()
+    
+    buildScreenHeader()
+    
+    S:egpText(9, "Suas Preferencias:", vec2(256, 155))
+    S:egpColor(9, CorTexto)
+    S:egpAlign(9, 1)
+    S:egpSize(9, 30)
+    S:egpFont(9, "Arial")
+    
+    local PName = Target:name():explode(" ")
+    S:egpText(15, PName[1, string], vec2(256, 120))
+    S:egpColor(15, CorTextoDestaque)
+    S:egpAlign(15, 1)
+    S:egpSize(15, 40)
+    S:egpFont(15, "Arial")
+    
+    #Ajuste Distancia
+    S:egpText(16, "Distancia:", vec2(40, 210))
+    S:egpColor(16, CorTexto)
+    S:egpAlign(16, 0)
+    S:egpSize(16, 30)
+    S:egpFont(16, "Arial")
+    
+    S:egpBox(17, vec2(256,210), vec2(150, 30))
+    S:egpColor(17, CaixaEscolha)
+    
+    S:egpText(30, Distancia, vec2(328, 210))
+    S:egpColor(30, CaixaEscolhaTexto)
+    S:egpAlign(30, 1)
+    S:egpSize(30, 30)
+    S:egpFont(30, "Arial")
+    
+    S:egpTriangle(18, vec2(239,210), vec2(239, 240), vec2(215,224))
+    S:egpColor(18, Botoes)
+    
+    S:egpTriangle(19, vec2(422,210), vec2(422, 240), vec2(448,224))
+    S:egpColor(19, Botoes)
+    
+    if (Target:keyUse() && inrange(Cursor, vec2(215, 210), vec2(240, 240)))
+    {
+        S:egpColor(18, BotaoPress)
+        timer("dist-", 300)
+    }
+    elseif(inrange(Cursor, vec2(215, 210), vec2(240, 240))) {S:egpColor(18, BotaoHover)}
+    else {S:egpColor(18, Botoes)}
+    
+    if (Target:keyUse() && inrange(Cursor, vec2(422, 210), vec2(448, 240)))
+    {
+        S:egpColor(19, BotaoPress)
+        timer("dist+", 300)
+    }
+    elseif(inrange(Cursor, vec2(422, 210), vec2(448, 240)))
+    {
+        S:egpColor(19, BotaoHover)
+    }
+    else
+    {
+        S:egpColor(19, Botoes)
+    }
+    
+    if (clk("dist+")) { if (Dist < 3){Dist++} }
+    if (clk("dist-")) { if (Dist > 1){Dist--} }
+    
+    if (Dist == 1) { Distancia = "Short" }
+    if (Dist == 2) { Distancia = "Normal" }
+    if (Dist == 3) { Distancia = "Long" }
+    
+    #Ajuste o Tempo do jogo
+    S:egpText(20, "Tempo:", vec2(40, 250))
+    S:egpColor(20, CorTexto)
+    S:egpAlign(20, 0)
+    S:egpSize(20, 30)
+    S:egpFont(20, "Arial")
+    
+    S:egpBox(21, vec2(256,250), vec2(150, 30))
+    S:egpColor(21, CaixaEscolha)
+    
+    S:egpText(31, MaxTime+" min", vec2(328, 250))
+    S:egpColor(31, CaixaEscolhaTexto)
+    S:egpAlign(31, 1)
+    S:egpSize(31, 30)
+    S:egpFont(31, "Arial")
+    
+    S:egpTriangle(22, vec2(239,250), vec2(239, 280), vec2(215,264))
+    S:egpColor(22, Botoes)
+    
+    S:egpTriangle(23, vec2(422,250), vec2(422, 280), vec2(448,264))
+    S:egpColor(23, Botoes)
+    
+    if (Target:keyUse() && inrange(Cursor, vec2(215, 250), vec2(240, 280)))
+    {
+        S:egpColor(22, BotaoPress)
+        timer("time-", 300)
+    }
+    elseif(inrange(Cursor, vec2(215, 250), vec2(240, 280)))
+    {
+        S:egpColor(22, BotaoHover)
+    }
+    else
+    {
+        S:egpColor(22, Botoes)
+    }
+    
+    if (Target:keyUse() && inrange(Cursor, vec2(422, 250), vec2(450, 280)))
+    {
+        S:egpColor(23, BotaoPress)
+        timer("time+", 300)
+    }
+    
+    elseif(inrange(Cursor, vec2(422, 250), vec2(450, 280)))
+    {
+        S:egpColor(23, BotaoHover)
+    }
+    else
+    {
+        S:egpColor(23, Botoes)
+    }
+    
+    if (clk("time+")) { if (MaxTime < 5){MaxTime++} }
+    if (clk("time-")) { if (MaxTime > 1){MaxTime--} }
+    
+    #Escolha a Arma
+    S:egpText(34, "Arma:", vec2(40, 290))
+    S:egpColor(34, CorTexto)
+    S:egpAlign(34, 0)
+    S:egpSize(34, 30)
+    S:egpFont(34, "Arial")
+    
+    S:egpBox(35, vec2(256,290), vec2(150, 30))
+    S:egpColor(35, CaixaEscolha)
+    
+    local NWep = AllowedWeps[Weapon, string]:explode("|")
+    S:egpText(36, NWep[2, string], vec2(328, 293))
+    S:egpColor(36, CaixaEscolhaTexto)
+    S:egpAlign(36, 1)
+    S:egpSize(36, 25)
+    S:egpFont(36, "Arial")
+    
+    S:egpTriangle(37, vec2(239,290), vec2(239, 320), vec2(215,304))
+    S:egpColor(37, Botoes)
+    
+    S:egpTriangle(38, vec2(422,290), vec2(422, 320), vec2(448,304))
+    S:egpColor(38, Botoes)
+    
+    if (Target:keyUse() && inrange(Cursor, vec2(215, 290), vec2(240, 320)))
+    {
+        S:egpColor(37, BotaoPress)
+        timer("arma-", 300)
+    }
+    elseif(inrange(Cursor, vec2(215, 290), vec2(240, 320)))
+    {
+        S:egpColor(37, BotaoHover)
+    }
+    else
+    {
+        S:egpColor(37, Botoes)
+    }
+    
+    if (Target:keyUse() && inrange(Cursor, vec2(422, 290), vec2(450, 320)))
+    {
+        S:egpColor(38, BotaoPress)
+        timer("arma+", 300)
+    }
+    elseif(inrange(Cursor, vec2(422, 290), vec2(450, 320)))
+    {
+        S:egpColor(38, BotaoHover)
+    }
+    else
+    {
+        S:egpColor(38, Botoes)
+    }
+    
+    if (clk("arma+")) { if (Weapon < 6){Weapon++} }
+    if (clk("arma-")) { if (Weapon > 1){Weapon--} }
+    
+    WeaponMode = NWep[1, string]
+    
+    #Modo Headshot Only
+    S:egpText(24, "HS Only:", vec2(40, 330))
+    S:egpColor(24, CorTexto)
+    S:egpAlign(24, 0)
+    S:egpSize(24, 30)
+    S:egpFont(24, "Arial")
+    
+    #Botao Switch
+    S:egpBox(25, vec2(256,330), vec2(150, 30))
+    S:egpColor(25, BtnSwitch)
+    
+    S:egpBox(26, vec2(256,330), vec2(75, 30))
+    S:egpColor(26, vec(210,50,50))
+    
+    
+    if (buttonPress(25) == "Pressed") {timer("btn", 200)}
+    if (clk("btn")) {BTN = !BTN}
+    if (BTN) {S:egpPos(26, vec2(332, 330)), S:egpColor(26, vec(50,210,50)), HSMode = 1}
+    if (!BTN) {S:egpPos(26, vec2(256, 330)), S:egpColor(26, vec(210,50,50)), HSMode = 0}
+    
+    #Modo Aleatorio
+    S:egpText(27, "Aleatorio:", vec2(40, 370))
+    S:egpColor(27, CorTexto)
+    S:egpAlign(27, 0)
+    S:egpSize(27, 30)
+    S:egpFont(27, "Arial")
+    
+    #Botao Switch
+    S:egpBox(28, vec2(256,370), vec2(150, 30))
+    S:egpColor(28, BtnSwitch)
+    
+    S:egpBox(29, vec2(256,370), vec2(75, 30))
+    S:egpColor(29, vec(210,50,50))
+    
+    
+    if (buttonPress(28) == "Pressed") {timer("btn2", 200)}
+    if (clk("btn2")) {BTN2 = !BTN2}
+    if (BTN2) {S:egpPos(29, vec2(332, 370)), S:egpColor(29, vec(50,210,50)), Aleatorio = 1}
+    if (!BTN2) {S:egpPos(29, vec2(256, 370)), S:egpColor(29, vec(210,50,50)), Aleatorio = 0}
+    
+    #Botao Confirmar
+    S:egpBox(32, vec2(100,420), vec2(320, 60))
+    S:egpColor(32, Botoes)
+    
+    S:egpText(33, "Confirmar", vec2(256, 430))
+    S:egpColor(33, BotaoTexto)
+    S:egpAlign(33, 1)
+    S:egpSize(33, 45)
+    S:egpFont(33, "Arial")
+    
+    if (buttonPress(32) == "Pressed") {timer("btn3", 300)}
+    if (clk("btn3")) { TempLimpa = 1, Start = 1, Pagina = "EmProgresso"}
+}
+
+# Pagina de Progresso
+elseif (Pagina == "EmProgresso")
+{
+    if (TempLimpa == 1) {limpaTela(), Ply1 = Target, Ply2 = P2Ent, AFKCount = 0}
+    
+    buildScreenHeader()
+    
+    S:egpText(6, "Jogo em Progresso", vec2(256, 130))
+    S:egpColor(6, CorTexto)
+    S:egpAlign(6, 1)
+    S:egpSize(6, 40)
+    S:egpFont(6, "Arial")
+    
+    S:egpText(11, "", vec2(256, 170))
+    S:egpColor(11, CorTextoDestaque)
+    S:egpAlign(11, 1)
+    S:egpSize(11, 25)
+    S:egpFont(11, "Arial")
+    
+    S:egpText(12, "", vec2(256, 190))
+    S:egpColor(12, CorTextoDestaque)
+    S:egpAlign(12, 1)
+    S:egpSize(12, 20)
+    S:egpFont(12, "Arial")
+    
+    if (SingleMulti == "Single")
+    {
+        local P1Name = Ply1:name():explode(" ")
+        local TempoR = (60*MaxTime)-TempoRestante
+        S:egpText(7, P1Name[1, string], vec2(256, 230))
+        S:egpColor(7, CorTexto)
+        S:egpAlign(7, 1)
+        S:egpSize(7, 80)
+        S:egpFont(7, "Arial")
+        
+        S:egpText(8, ""+TempoR, vec2(256, 290))
+        S:egpColor(8, CorTexto)
+        S:egpAlign(8, 1)
+        S:egpSize(8, 100)
+        S:egpFont(8, "Arial")
+        
+        if (TempoR <= 0) {TempLimpa = 1, Start = 0, Pagina = "JogoFinalizado"}
+    }
+    if (SingleMulti == "Multi" && P2Ent != noentity())
+    {
+        local P1Name = Ply1:name():explode(" ")
+        local P2Name = Ply2:name():explode(" ")
+        local TempoR = (60*MaxTime)-TempoRestante
+        S:egpText(7, P1Name[1, string], vec2(256, 220))
+        S:egpColor(7, CorTexto)
+        S:egpAlign(7, 1)
+        S:egpSize(7, 60)
+        S:egpFont(7, "Arial")
+        
+        S:egpText(8, "VS", vec2(256, 278))
+        S:egpColor(8, CorTexto)
+        S:egpAlign(8, 1)
+        S:egpSize(8, 40)
+        S:egpFont(8, "Arial")
+        
+        S:egpText(9, P2Name[1, string], vec2(256, 310))
+        S:egpColor(9, CorTexto)
+        S:egpAlign(9, 1)
+        S:egpSize(9, 60)
+        S:egpFont(9, "Arial")
+        
+        S:egpText(10, ""+TempoR, vec2(256, 380))
+        S:egpColor(10, CorTexto)
+        S:egpAlign(10, 1)
+        S:egpSize(10, 60)
+        S:egpFont(10, "Arial")
+        
+        if (TempoR <= 0) {TempLimpa = 1, Start = 0, Pagina = "JogoFinalizado"}
+    }
+    
+    local NWep = AllowedWeps[Weapon, string]:explode("|")
+    
+    if (Init == 0 && Inicio == 1 && OnlyBullets == 1)
+    {
+        S:egpSetText(11, "Arma Invalida !")
+        S:egpSetText(12, "Equipe: "+NWep[2, string]+" para Continuar")
+    }
+    elseif (Init == 0 && Inicio == 1 && OnlyBullets == 0)
+    {
+        S:egpSetText(11, "Explosao Detectada !")
+        S:egpSetText(12, "Atire com: "+NWep[2, string]+" para Continuar")
+    }
+    elseif (Init == 1 && Inicio == 1 && OnlyBullets == 0)
+    {
+        S:egpSetText(11, "Explosao Detectada !")
+        S:egpSetText(12, "Atire com: "+NWep[2, string]+" para Continuar")
+    }
+    else
+    {
+        S:egpSetText(11, "")
+        S:egpSetText(12, "")
+    }
+    
+}
+# Pagina de Configuracoes
+elseif (Pagina == "JogoFinalizado")
+{
+    if (TempLimpa == 1) {limpaTela(), AFKCount = 0}
+    beginAFK()
+    
+    buildScreenHeader()
+    
+    if (SingleMulti == "Single")
+    {
+        local P1Name = PointsTable["P1Name", string]:explode(" ")
+        
+        S:egpText(6, "Jogo Finalizado", vec2(256, 130))
+        S:egpColor(6, CorTexto)
+        S:egpAlign(6, 1)
+        S:egpSize(6, 40)
+        S:egpFont(6, "Arial")
+        
+        S:egpText(7, ""+P1Name[1, string], vec2(256, 240))
+        S:egpColor(7, CorTextoDestaque)
+        S:egpAlign(7, 1)
+        S:egpSize(7, 60)
+        S:egpFont(7, "Arial")
+            
+        S:egpText(8, ""+PointsTable["TotalP1", number]+" Pontos", vec2(256, 296))
+        S:egpColor(8, CorTexto)
+        S:egpAlign(8, 1)
+        S:egpSize(8, 50)
+        S:egpFont(8, "Arial")
+    }
+    
+    if (SingleMulti == "Multi")
+    {
+        local P1Name = PointsTable["P1Name", string]:explode(" ")
+        local P2Name = PointsTable["P2Name", string]:explode(" ")
+        local P1Pontos = PointsTable["TotalP1", number]
+        local P2Pontos = PointsTable["TotalP2", number]
+        
+        local Tie = 0
+        local Winner = ""
+        local WinnerPoints = 0
+        local Loser = ""
+        local LoserPoints = 0
+        
+        if(P1Pontos == P2Pontos) {Tie = 1}
+        elseif (P1Pontos > P2Pontos) {Tie = 0, Winner = P1Name[1, string], WinnerPoints = P1Pontos, Loser = P2Name[1, string], LoserPoints = P2Pontos}
+        else {Tie = 0, Winner = P2Name[1, string], WinnerPoints = P2Pontos, Loser = P1Name[1, string], LoserPoints = P1Pontos}
+        
+        if(Tie == 0)
+        {
+            S:egpText(6, Winner, vec2(256, 170))
+            S:egpColor(6, CorTextoDestaque)
+            S:egpAlign(6, 1)
+            S:egpSize(6, 60)
+            S:egpFont(6, "Arial")
+            
+            S:egpText(7, "Vencedor:", vec2(256, 130))
+            S:egpColor(7, CorTexto)
+            S:egpAlign(7, 1)
+            S:egpSize(7, 40)
+            S:egpFont(7, "Arial")
+            
+            S:egpText(8, ""+WinnerPoints+" Pontos", vec2(256, 220))
+            S:egpColor(8, CorTexto)
+            S:egpAlign(8, 1)
+            S:egpSize(8, 50)
+            S:egpFont(8, "Arial")
+            
+            S:egpText(11, Loser, vec2(50, 290))
+            S:egpColor(11, CorTextoDestaque)
+            S:egpAlign(11, 0)
+            S:egpSize(11, 40)
+            S:egpFont(11, "Arial")
+            
+            S:egpText(12, ""+LoserPoints+" Pontos", vec2(480, 290))
+            S:egpColor(12, CorTexto)
+            S:egpAlign(12, 2)
+            S:egpSize(12, 40)
+            S:egpFont(12, "Arial")
+        }
+        else
+        {
+            S:egpText(6, "Empate", vec2(256, 140))
+            S:egpColor(6, CorTexto)
+            S:egpAlign(6, 1)
+            S:egpSize(6, 40)
+            S:egpFont(6, "Arial")
+            
+            S:egpText(7, P1Name[1, string]+" & "+P2Name[1, string], vec2(256, 200))
+            S:egpColor(7, CorTextoDestaque)
+            S:egpAlign(7, 1)
+            S:egpSize(7, 60)
+            S:egpFont(7, "Arial")
+            
+            S:egpText(8, P1Pontos+" Pontos", vec2(256, 250))
+            S:egpColor(8, CorTexto)
+            S:egpAlign(8, 1)
+            S:egpSize(8, 50)
+            S:egpFont(8, "Arial")
+        }
+    }
+    
+    S:egpBox(9, vec2(45,380), vec2(420, 65))
+    S:egpColor(9, Botoes)
+        
+    S:egpText(10, "Voltar", vec2(256, 385))
+    S:egpColor(10, BotaoTexto)
+    S:egpAlign(10, 1)
+    S:egpSize(10, 55)
+    S:egpFont(10, "Arial")
+    
+    if (buttonPress(9) == "Pressed") {timer("mudapagina", 300)}
+    if (clk("mudapagina")) { TempLimpa = 1, Pagina = "Inicial" }
+}

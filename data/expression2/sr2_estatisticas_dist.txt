@@ -1,0 +1,443 @@
+#[
+        SHOOTING RANGE 2.0
+        BY NICKMBR
+]#
+
+@name Estatisticas | Shooting Range 2 | N!kO Systems
+
+# Recebe as Telas e se estao ligadas
+@inputs [SP1 SP2]:wirelink Pagina:string SingleMulti:string
+
+# Recebe os Players
+@inputs [Ply1 Ply2]:entity
+
+# Tabela global de pontos entre as E2s
+@persist PointsTable:gtable
+@persist LimpaTela [Cursor Cursor2]:vector2 UserRegs:table A1 A2 I
+
+#include "shootingrange2/sr2_cores"
+
+if (first() | dupefinished())
+{
+    ### NAO MUDE NADA AQUI ###
+    SP1:egpClear()
+    SP1:egpDrawTopLeft(1)
+    
+    SP2:egpClear()
+    SP2:egpDrawTopLeft(1)
+    
+    runOnFile(1)
+    
+    PointsTable = gTable("PlyPoints",0)
+    UserRegs = table()
+    
+    Test = 1
+    LimpaTela = 1
+    A1 = 1
+    A2 = 1
+    
+    function table:reguser(UniqueID:string, UserName:string, UserID:string, UserScore:number, UserPrec:number, UserErros:number, UserHPK:number, UserDist:string, UserTime:number, UserArma:string, UserHS:number, UserChest:number, UserTorso:number, UserLegs:number, UserAlvos:number)
+    {
+        local UserTable = table()
+        UserTable["UniqueID", string] = UniqueID
+        UserTable["Name", string] = UserName
+        UserTable["SID", string] = UserID
+        UserTable["Pontos", number] = UserScore
+        UserTable["Precision", number] = UserPrec
+        UserTable["Erros", number] = UserErros
+        UserTable["HPK", number] = UserHPK
+        UserTable["Distancia", string] = UserDist
+        UserTable["Tempo", number] = UserTime
+        UserTable["Arma", string] = UserArma
+        UserTable["Headshots", number] = UserHS
+        UserTable["Chest", number] = UserChest
+        UserTable["Torso", number] = UserTorso
+        UserTable["Legs", number] = UserLegs
+        UserTable["Alvos", number] = UserAlvos
+        This[UniqueID, table] = UserTable
+    }
+    
+    function void salvarPontos(SteamID:string, Name:string, Pontos:number, Precision:number, Erros:number, HPK:number, Distancia:string, Tempo:number, Arma:string, Headshots, Chest, Torso, Legs, Alvos)
+    {
+        local UniqueID = randint(1000, 9999)
+        
+        if(UserRegs[toString(UniqueID), table]["SID", string])
+        {
+            UniqueID = randint(1000, 9999)
+        }
+        else
+        {
+            local STR_UID = toString(UniqueID)
+            UserRegs:reguser(STR_UID, Name, SteamID, round(Pontos), round(Precision), Erros, round(HPK), Distancia, Tempo, Arma, Headshots, Chest, Torso, Legs, Alvos)
+            if (fileCanWrite()) {fileWrite("sr2_leaderboards.txt", vonEncode(UserRegs))}
+        }
+    }
+    
+    if (fileCanLoad())
+    {
+        fileLoad("sr2_leaderboards.txt")
+    }
+}
+
+function void limpaTela()
+{
+    SP1:egpClear()
+    SP2:egpClear()
+    LimpaTela = 0
+}
+
+if (fileClk())
+{
+    if (fileStatus() == _FILE_OK)
+    {
+        chatPrint("Placar Carregado com Sucesso!")
+        UserRegs = vonDecodeTable(fileRead())
+    } 
+    else{chatPrint("Nao foi Possivel Carregar o Placar :(")}
+}
+
+#SP1:egpResolution(vec2(512), vec2(512))
+#SP2:egpResolution(vec2(512), vec2(512))
+
+interval(150)
+
+# Define o controlador da tela
+Cursor = SP1:egpCursor(Ply1)
+Cursor2 = SP2:egpCursor(Ply2)
+
+if (Pagina & ~Pagina) {LimpaTela = 1}
+
+if (Pagina == "Inicial")
+{
+    if (LimpaTela == 1) {limpaTela()}
+    
+    SP1:egpBox(1, vec2(0), vec2(512))
+    SP1:egpColor(1, BordaTela)
+    SP1:egpBox(2, vec2(16), vec2(480))
+    SP1:egpColor(2, FundoTela)
+    
+    SP1:egpBox(3, vec2(110,210), vec2(300, 80))
+    SP1:egpColor(3, FundoLogo)
+    SP1:egpAngle(3, 2)
+    
+    SP1:egpText(4, "Shooting Range 2.0", vec2(256, 216))
+    SP1:egpColor(4, TextoLogo)
+    SP1:egpAlign(4, 1)
+    SP1:egpSize(4, 30)
+    SP1:egpFont(4, "Arial")
+    
+    SP1:egpText(5, "By: NickMBR", vec2(256, 246))
+    SP1:egpColor(5, TextoLogo)
+    SP1:egpAlign(5, 1)
+    SP1:egpSize(5, 20)
+    SP1:egpFont(5, "Arial")
+    
+    SP2:egpBox(1, vec2(0), vec2(512))
+    SP2:egpColor(1, BordaTela)
+    SP2:egpBox(2, vec2(16), vec2(480))
+    SP2:egpColor(2, FundoTela)
+    
+    SP2:egpBox(3, vec2(110,210), vec2(300, 80))
+    SP2:egpColor(3, FundoLogo)
+    SP2:egpAngle(3, 2)
+    
+    SP2:egpText(4, "Shooting Range 2.0", vec2(256, 216))
+    SP2:egpColor(4, TextoLogo)
+    SP2:egpAlign(4, 1)
+    SP2:egpSize(4, 30)
+    SP2:egpFont(4, "Arial")
+    
+    SP2:egpText(5, "By: NickMBR", vec2(256, 246))
+    SP2:egpColor(5, TextoLogo)
+    SP2:egpAlign(5, 1)
+    SP2:egpSize(5, 20)
+    SP2:egpFont(5, "Arial")
+}
+
+if (Pagina == "JogoFinalizado")
+{
+    if (LimpaTela == 1) {limpaTela(), A1 = 1, A2 = 1}
+    
+    SP1:egpBox(1, vec2(0), vec2(512))
+    SP1:egpColor(1, BordaTela)
+    SP1:egpBox(2, vec2(16), vec2(480))
+    SP1:egpColor(2, FundoTela)
+    
+    SP1:egpBox(3, vec2(110,32), vec2(300, 80))
+    SP1:egpColor(3, FundoLogo)
+    SP1:egpAngle(3, 2)
+    
+    SP1:egpText(4, "Shooting Range 2.0", vec2(256, 40))
+    SP1:egpColor(4, TextoLogo)
+    SP1:egpAlign(4, 1)
+    SP1:egpSize(4, 30)
+    SP1:egpFont(4, "Arial")
+    
+    SP1:egpText(5, "By: NickMBR", vec2(256, 70))
+    SP1:egpColor(5, TextoLogo)
+    SP1:egpAlign(5, 1)
+    SP1:egpSize(5, 20)
+    SP1:egpFont(5, "Arial")
+    
+    SP1:egpBox(6, vec2(45,130), vec2(420, 40))
+    SP1:egpColor(6, PlacarInicio)
+    
+    SP1:egpText(7, PointsTable["P1Name", string], vec2(256, 135))
+    SP1:egpColor(7, PlacarTextoInicio)
+    SP1:egpAlign(7, 1)
+    SP1:egpSize(7, 30)
+    SP1:egpFont(7, "Arial")
+    
+    SP1:egpBox(8, vec2(45,170), vec2(210, 40))
+    SP1:egpColor(8, PlacarColuna1)
+    
+    SP1:egpText(9, "Headshots: "+PointsTable["P1H", number], vec2(50, 175))
+    SP1:egpColor(9, PlacarTextoColuna)
+    SP1:egpAlign(9, 0)
+    SP1:egpSize(9, 30)
+    SP1:egpFont(9, "Arial")
+    
+    SP1:egpBox(10, vec2(45,210), vec2(210, 40))
+    SP1:egpColor(10, PlacarColuna2)
+    
+    SP1:egpText(11, "Peito: "+PointsTable["P1C", number], vec2(50, 215))
+    SP1:egpColor(11, PlacarTextoColuna)
+    SP1:egpAlign(11, 0)
+    SP1:egpSize(11, 30)
+    SP1:egpFont(11, "Arial")
+    
+    SP1:egpBox(12, vec2(45,250), vec2(210, 40))
+    SP1:egpColor(12, PlacarColuna1)
+    
+    SP1:egpText(13, "Estomago: "+PointsTable["P1S", number], vec2(50, 255))
+    SP1:egpColor(13, PlacarTextoColuna)
+    SP1:egpAlign(13, 0)
+    SP1:egpSize(13, 30)
+    SP1:egpFont(13, "Arial")
+    
+    SP1:egpBox(14, vec2(45,290), vec2(210, 40))
+    SP1:egpColor(14, PlacarColuna2)
+    
+    SP1:egpText(15, "Pernas: "+PointsTable["P1L", number], vec2(50, 295))
+    SP1:egpColor(15, PlacarTextoColuna)
+    SP1:egpAlign(15, 0)
+    SP1:egpSize(15, 30)
+    SP1:egpFont(15, "Arial")
+    
+    SP1:egpBox(16, vec2(255,170), vec2(210, 40))
+    SP1:egpColor(16, PlacarColuna2)
+    
+    SP1:egpText(17, "Pontos: "+PointsTable["TotalP1", number], vec2(460, 175))
+    SP1:egpColor(17, PlacarTextoColuna)
+    SP1:egpAlign(17, 2)
+    SP1:egpSize(17, 30)
+    SP1:egpFont(17, "Arial")
+    
+    SP1:egpBox(18, vec2(255,210), vec2(210, 40))
+    SP1:egpColor(18, PlacarColuna1)
+    
+    SP1:egpText(19, "HPK: "+round(PointsTable["P1HPK", number])+"%", vec2(460, 215))
+    SP1:egpColor(19, PlacarTextoColuna)
+    SP1:egpAlign(19, 2)
+    SP1:egpSize(19, 30)
+    SP1:egpFont(19, "Arial")
+    
+    SP1:egpBox(20, vec2(255,250), vec2(210, 40))
+    SP1:egpColor(20, PlacarColuna2)
+    
+    SP1:egpText(21, "Precisao: "+round(PointsTable["P1Prec", number])+"%", vec2(460, 255))
+    SP1:egpColor(21, PlacarTextoColuna)
+    SP1:egpAlign(21, 2)
+    SP1:egpSize(21, 30)
+    SP1:egpFont(21, "Arial")
+    
+    SP1:egpBox(22, vec2(255,290), vec2(210, 40))
+    SP1:egpColor(22, PlacarColuna1)
+    
+    SP1:egpText(23, "Erros: "+PointsTable["P1E", number], vec2(460, 295))
+    SP1:egpColor(23, PlacarTextoColuna)
+    SP1:egpAlign(23, 2)
+    SP1:egpSize(23, 30)
+    SP1:egpFont(23, "Arial")
+    
+    SP1:egpBox(24, vec2(45,380), vec2(420, 60))
+    SP1:egpColor(24, Botoes)
+    
+    SP1:egpText(25, "Salvar Dados", vec2(256, 390))
+    SP1:egpColor(25, BotaoTexto)
+    SP1:egpAlign(25, 1)
+    SP1:egpSize(25, 40)
+    SP1:egpFont(25, "Arial")
+    
+    Pos1 = SP1:egpPos(24)
+    Pos2 = SP1:egpPos(24) + SP1:egpSize(24)
+    
+    if (A1 == 0) {SP1:egpColor(24, BotaoDisable)}
+    
+    if (Ply1:keyUse() && inrange(Cursor, Pos1, Pos2) && A1 == 1) {SP1:egpColor(24, BotaoPress), timer("save", 200)}
+    elseif(inrange(Cursor, Pos1, Pos2) && A1 == 1) {SP1:egpColor(24, BotaoHover)}
+    elseif (A1 == 1) {SP1:egpColor(24, Botoes)}
+    if (clk("save")) 
+    {
+        salvarPontos(PointsTable["P1SID", string], PointsTable["P1Name", string], PointsTable["TotalP1", number], 
+        PointsTable["P1Prec", number], PointsTable["P1E", number], PointsTable["P1HPK", number], 
+        PointsTable["Distancia", string], PointsTable["Tempo", number], PointsTable["Arma", string], PointsTable["P1H", number],
+        PointsTable["P1C", number], PointsTable["P1S", number], PointsTable["P1L", number], PointsTable["AlvosP1", number])
+        A1 = 0
+    }
+    
+    if (SingleMulti == "Multi")
+    {
+        ## Tela Player2
+        SP2:egpBox(1, vec2(0), vec2(512))
+        SP2:egpColor(1, BordaTela)
+        SP2:egpBox(2, vec2(16), vec2(480))
+        SP2:egpColor(2, FundoTela)
+        
+        SP2:egpBox(3, vec2(110,32), vec2(300, 80))
+        SP2:egpColor(3, FundoLogo)
+        SP2:egpAngle(3, 2)
+        
+        SP2:egpText(4, "Shooting Range 2.0", vec2(256, 40))
+        SP2:egpColor(4, TextoLogo)
+        SP2:egpAlign(4, 1)
+        SP2:egpSize(4, 30)
+        SP2:egpFont(4, "Arial")
+        
+        SP2:egpText(5, "By: NickMBR", vec2(256, 70))
+        SP2:egpColor(5, TextoLogo)
+        SP2:egpAlign(5, 1)
+        SP2:egpSize(5, 20)
+        SP2:egpFont(5, "Arial")
+        
+        SP2:egpBox(6, vec2(45,130), vec2(420, 40))
+        SP2:egpColor(6, PlacarInicio)
+        
+        SP2:egpText(7, PointsTable["P2Name", string], vec2(256, 135))
+        SP2:egpColor(7, PlacarTextoInicio)
+        SP2:egpAlign(7, 1)
+        SP2:egpSize(7, 30)
+        SP2:egpFont(7, "Arial")
+        
+        SP2:egpBox(8, vec2(45,170), vec2(210, 40))
+        SP2:egpColor(8, PlacarColuna1)
+        
+        SP2:egpText(9, "Headshots: "+PointsTable["P2H", number], vec2(50, 175))
+        SP2:egpColor(9, PlacarTextoColuna)
+        SP2:egpAlign(9, 0)
+        SP2:egpSize(9, 30)
+        SP2:egpFont(9, "Arial")
+        
+        SP2:egpBox(10, vec2(45,210), vec2(210, 40))
+        SP2:egpColor(10, PlacarColuna2)
+        
+        SP2:egpText(11, "Peito: "+PointsTable["P2C", number], vec2(50, 215))
+        SP2:egpColor(11, PlacarTextoColuna)
+        SP1:egpAlign(11, 0)
+        SP2:egpSize(11, 30)
+        SP2:egpFont(11, "Arial")
+        
+        SP2:egpBox(12, vec2(45,250), vec2(210, 40))
+        SP2:egpColor(12, PlacarColuna1)
+        
+        SP2:egpText(13, "Estomago: "+PointsTable["P2S", number], vec2(50, 255))
+        SP2:egpColor(13, PlacarTextoColuna)
+        SP2:egpAlign(13, 0)
+        SP2:egpSize(13, 30)
+        SP2:egpFont(13, "Arial")
+        
+        SP2:egpBox(14, vec2(45,290), vec2(210, 40))
+        SP2:egpColor(14, PlacarColuna2)
+        
+        SP2:egpText(15, "Pernas: "+PointsTable["P2L", number], vec2(50, 295))
+        SP2:egpColor(15, PlacarTextoColuna)
+        SP2:egpAlign(15, 0)
+        SP2:egpSize(15, 30)
+        SP2:egpFont(15, "Arial")
+        
+        SP2:egpBox(16, vec2(255,170), vec2(210, 40))
+        SP2:egpColor(16, PlacarColuna2)
+        
+        SP2:egpText(17, "Pontos: "+PointsTable["TotalP2", number], vec2(460, 175))
+        SP2:egpColor(17, PlacarTextoColuna)
+        SP2:egpAlign(17, 2)
+        SP2:egpSize(17, 30)
+        SP2:egpFont(17, "Arial")
+        
+        SP2:egpBox(18, vec2(255,210), vec2(210, 40))
+        SP2:egpColor(18, PlacarColuna1)
+        
+        SP2:egpText(19, "HPK: "+round(PointsTable["P2HPK", number])+"%", vec2(460, 215))
+        SP2:egpColor(19, PlacarTextoColuna)
+        SP2:egpAlign(19, 2)
+        SP2:egpSize(19, 30)
+        SP2:egpFont(19, "Arial")
+        
+        SP2:egpBox(20, vec2(255,250), vec2(210, 40))
+        SP2:egpColor(20, PlacarColuna2)
+        
+        SP2:egpText(21, "Precisao: "+round(PointsTable["P2Prec", number])+"%", vec2(460, 255))
+        SP2:egpColor(21, PlacarTextoColuna)
+        SP2:egpAlign(21, 2)
+        SP2:egpSize(21, 30)
+        SP2:egpFont(21, "Arial")
+        
+        SP2:egpBox(22, vec2(255,290), vec2(210, 40))
+        SP2:egpColor(22, PlacarColuna1)
+        
+        SP2:egpText(23, "Erros: "+PointsTable["P2E", number], vec2(460, 295))
+        SP2:egpColor(23, PlacarTextoColuna)
+        SP2:egpAlign(23, 2)
+        SP2:egpSize(23, 30)
+        SP2:egpFont(23, "Arial")
+        
+        SP2:egpBox(26, vec2(45,350), vec2(420, 60))
+        SP2:egpColor(26, Botoes)
+        
+        SP2:egpText(25, "Salvar Dados", vec2(256, 360))
+        SP2:egpColor(25, BotaoTexto)
+        SP2:egpAlign(25, 1)
+        SP2:egpSize(25, 40)
+        SP2:egpFont(25, "Arial")
+        
+        Pos3 = SP2:egpPos(26)
+        Pos4 = SP2:egpPos(26) + SP2:egpSize(26)
+        
+        if (A2 == 0) {SP2:egpColor(26, BotaoDisable)}
+        
+        if (Ply2:keyUse() && inrange(Cursor2, Pos3, Pos4) && A2 == 1) {SP2:egpColor(26, BotaoPress), timer("save2", 200)}
+        elseif(inrange(Cursor2, Pos3, Pos4) && A2 == 1) {SP2:egpColor(26, BotaoHover)}
+        elseif (A2 == 1) {SP2:egpColor(26, Botoes)}
+        if (clk("save2")) 
+        {
+            salvarPontos(PointsTable["P2SID", string], PointsTable["P2Name", string], PointsTable["TotalP2", number], 
+            PointsTable["P2Prec", number], PointsTable["P2E", number], PointsTable["P2HPK", number], 
+            PointsTable["Distancia", string], PointsTable["Tempo", number], PointsTable["Arma", string], PointsTable["P2H", number],
+            PointsTable["P2C", number], PointsTable["P2S", number], PointsTable["P2L", number], PointsTable["AlvosP2", number])
+            A2 = 0
+        }
+    }
+    else
+    {
+        SP2:egpBox(1, vec2(0), vec2(512))
+        SP2:egpColor(1, BordaTela)
+        SP2:egpBox(2, vec2(16), vec2(480))
+        SP2:egpColor(2, FundoTela)
+        
+        SP2:egpBox(3, vec2(110,210), vec2(300, 80))
+        SP2:egpColor(3, FundoLogo)
+        SP2:egpAngle(3, 2)
+        
+        SP2:egpText(4, "Shooting Range 2.0", vec2(256, 216))
+        SP2:egpColor(4, TextoLogo)
+        SP2:egpAlign(4, 1)
+        SP2:egpSize(4, 30)
+        SP2:egpFont(4, "Arial")
+        
+        SP2:egpText(5, "By: NickMBR", vec2(256, 246))
+        SP2:egpColor(5, TextoLogo)
+        SP2:egpAlign(5, 1)
+        SP2:egpSize(5, 20)
+        SP2:egpFont(5, "Arial")
+    }
+}

@@ -1,0 +1,70 @@
+#[
+        SHOOTING RANGE 2.0
+        BY NICKMBR
+]#
+
+@name LeaderBoards_ShootingRange2_N!kO_Systems
+
+# I/0
+@inputs RequestLeaderBoard Pagina:string
+@outputs [PontosArray UniqueIDArray]:array LB_Details:table PlacarLoaded
+
+# Auxiliares
+@persist LB_Details:table
+@persist Z I J Aux Aux2:string
+
+if (first() | dupefinished())
+{
+    runOnFile(1)
+}
+
+# Ordena a Tabela de Jogadores em Ordem Descrescente
+function void calcLeaderBoard()
+{
+    PontosArray = array()
+    UniqueIDArray = array()
+    
+    foreach (K, V:table=LB_Details)
+    {
+        PontosArray:pushNumber(V["Pontos", number])
+        UniqueIDArray:pushString(V["UniqueID", string])
+    }
+    
+    for (I = 1, PontosArray:count(), 1)
+    {
+        for (J = 1, PontosArray:count() - 1, 1)
+        {
+            if (PontosArray[J, number] < PontosArray[J+1, number])
+            {
+                Aux = PontosArray[J, number]
+                PontosArray[J, number] = PontosArray[J+1, number]
+                PontosArray[J+1, number] = Aux
+                
+                Aux2 = UniqueIDArray[J, string]
+                UniqueIDArray[J, string] = UniqueIDArray[J+1, string]
+                UniqueIDArray[J+1, string] = Aux2
+            }
+        }
+    }
+    
+    PlacarLoaded = 1
+}
+
+if (Pagina == "Inicial")
+{
+    PlacarLoaded = 0
+}
+
+if (RequestLeaderBoard & ~RequestLeaderBoard)
+{
+    LB_Details = table()
+    if (fileCanLoad()) {fileLoad("sr2_leaderboards.txt")}
+    else {chatPrint("Nao foi Possivel Carregar o Arquivo :("), PlacarLoaded = 0}
+}
+
+if (fileClk())
+{
+    if (fileStatus() == _FILE_OK) {LB_Details = vonDecodeTable(fileRead())} 
+    else {chatPrint("Ocorreu um erro no Arquivo :("), PlacarLoaded = 0}
+    calcLeaderBoard()
+}

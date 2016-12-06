@@ -1,0 +1,74 @@
+#[
+        SHOOTING RANGE 2.0
+        BY NICKMBR
+]#
+
+@name Contagem Holograma | Shooting Range 2 | N!kO Systems
+@inputs Inicio
+@outputs Start
+@persist E2:entity Timer Inicio
+
+if(first() | dupefinished())
+{
+    E2 = entity()
+    Timer = 6
+    Inicio = 1
+    
+    holoCreate(1, E2:toWorld(vec(-50,-350,0)), vec(7), E2:toWorld(ang(-90,-90,90)))
+    holoModel(1, "models/sprops/misc/alphanum/alphanum_3.mdl", 1)
+    holoDisableShading(1,1)
+    holoSkin(1,0)
+    holoParent(1, E2)
+    holoAlpha(1, 0)
+}
+
+if (Inicio == 1)
+{
+    timer("countdown", 1000)
+    if(clk("countdown")){Timer--}
+    
+    if(Timer == 5) 
+    {
+        holoAlpha(1, 255)
+        holoModel(1, "models/sprops/misc/alphanum/alphanum_5.mdl")
+        soundPlay(1, 2, "bombtimer/5sec.mp3")
+    }
+    
+    if(Timer == 4) 
+    {
+        holoModel(1, "models/sprops/misc/alphanum/alphanum_4.mdl")
+        soundPlay(2, 2, "bombtimer/4sec.mp3")
+    }
+    
+    if(Timer == 3) 
+    {
+        holoModel(1, "models/sprops/misc/alphanum/alphanum_3.mdl")
+        soundPlay(3, 2, "bombtimer/3sec.mp3")
+    }
+    if(Timer == 2) 
+    {
+        holoModel(1, "models/sprops/misc/alphanum/alphanum_2.mdl")
+        soundPlay(4, 2, "bombtimer/2sec.mp3")
+    }
+    if(Timer == 1) 
+    {
+        holoModel(1, "models/sprops/misc/alphanum/alphanum_1.mdl")
+        soundPlay(5, 2, "bombtimer/1sec.mp3")
+    }
+    if(Timer == 0) 
+    {
+        stoptimer("countdown")
+        Timer = 6
+        
+        holoAlpha(1, 0)
+        soundPlay(6, 2, "quake/standard/play.wav")
+        Start = 1
+    }
+}
+else
+{
+    stoptimer("countdown")
+    holoAlpha(1, 0)
+    Start = 0
+    Timer = 6
+}

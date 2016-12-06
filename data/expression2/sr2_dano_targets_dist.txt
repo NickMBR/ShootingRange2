@@ -1,0 +1,348 @@
+#[
+        SHOOTING RANGE 2.0
+        BY NICKMBR
+]#
+
+@name Dano Targets 3 | Shooting Range 2 | N!kO Systems
+
+# Array Config: (Head, Chest, Stomach, Legs, Prop)
+@inputs [T_Short T_Normal T_Long]:array
+
+# Recebe os Jogadores e o Modo de Jogo da partida em Andamento.
+@inputs [Ply1 Ply2]:entity [SingleMulti Distancia]:string Aleatorio WeaponMode:string HSMode
+
+#I/O Derivados
+@inputs TempoMaximo Start
+@outputs RoundTime Finish Init OnlyBullets
+
+# Envia os Pontos e Hits para os Jogadores
+@outputs [TotalP1 TotalHitsP1 P1H P1C P1S P1L P1E P1A]:number [TotalP2 TotalHitsP2 P2H P2C P2S P2L P2E P2A]:number
+
+# Variaveis Derivadas
+@persist PointsTable:gtable
+@persist RoundTime A1 A2 A3 Init OnlyBullets
+@persist RandomCount RandomTarget FixedTarget TempArray:array PointDist
+
+if (first() | dupefinished())
+{
+    ### NAO MUDE NADA AQUI ###
+    PointsTable = gTable("PlyPoints",0)
+    RoundTime = 0
+    TMode = 1
+    A1 = 1
+    A2 = 1
+    A3 = 1
+    AuxCont = 0
+    PointDist = 0
+    FixedTarget = 1
+    OnlyBullets = 1
+}
+
+# Requer 'E2 DmgCore'
+# http://steamcommunity.com/sharedfiles/filedetails/?id=217370580
+if (lastDamage():isBulletDamage() == 1) {runOnDmg(1), OnlyBullets = 1}
+else {runOnDmg(0), OnlyBullets = 0}
+
+# Constroi uma Array Temporaria
+if (Distancia == "Short"){TempArray = T_Short, PointDist = 0}
+if (Distancia == "Normal"){TempArray = T_Normal, PointDist = 10}
+if (Distancia == "Long"){TempArray = T_Long, PointDist = 20}
+
+# Funcao que Detecta o Alvo Atingido e Conta Pontos
+# de Acordo com o GameMode e o Player
+function entity detectDamage()
+{
+    if (dmgClk() && dmgAttacker() == Ply1 || dmgAttacker() == Ply2)
+    {
+        if (dmgVictim():isConstrainedTo():angles():roll() != 0)
+        {
+            foreach(K, Prop:entity=TempArray)
+            {
+                if(Prop == dmgVictim())
+                {
+                    if(K == 1 | K == 6 | K == 11 | K == 16 | K == 21)
+                    {
+                        if(dmgAttacker() == Ply1) {if(HSMode == 0) {TotalP1 += 50+PointDist} else {TotalP1 += 100+PointDist}, TotalHitsP1++, P1H++}
+                        if(dmgAttacker() == Ply2) {if(HSMode == 0) {TotalP2 += 50+PointDist} else {TotalP2 += 100+PointDist}, TotalHitsP2++, P2H++}
+                        if(HSMode == 1) {return Prop:parent()}
+                    }
+                    
+                    if(K == 2 | K == 7 | K == 12 | K == 17 | K == 22)
+                    {
+                        if(dmgAttacker() == Ply1) {if(HSMode == 0) {TotalP1 += 30+PointDist, TotalHitsP1++}, P1C++}
+                        if(dmgAttacker() == Ply2) {if(HSMode == 0) {TotalP2 += 30+PointDist, TotalHitsP2++}, P2C++}
+                    }
+                    
+                    if(K == 3 | K == 8 | K == 13 | K == 18 | K == 23)
+                    {
+                        if(dmgAttacker() == Ply1) {if(HSMode == 0) {TotalP1 += 10+PointDist, TotalHitsP1++}, P1S++}
+                        if(dmgAttacker() == Ply2) {if(HSMode == 0) {TotalP2 += 10+PointDist, TotalHitsP2++}, P2S++}
+                    }
+                    
+                    if(K == 4 | K == 9 | K == 14 | K == 19 | K == 24)
+                    {
+                        if(dmgAttacker() == Ply1) {if(HSMode == 0) {TotalP1 += 5+PointDist, TotalHitsP1++}, P1L++}
+                        if(dmgAttacker() == Ply2) {if(HSMode == 0) {TotalP2 += 5+PointDist, TotalHitsP2++}, P2L++}
+                    }
+                    
+                    if(HSMode == 0) {return Prop:parent()}
+                }
+            }
+        }
+        else
+        {
+            # Se Errar o Alvo, Conta como um Erro.
+            if(dmgAttacker() == Ply1) { P1E++ }
+            if(dmgAttacker() == Ply2) { P2E++ }
+        }
+    }
+    return noentity()
+}
+
+# Funcao para Abaixar todos os Alvos na Array Recebida
+function void killTargets(TargetList:array, Count)
+{
+    while (Count <= TargetList:count())
+    {
+        TargetList[Count, entity]:setAng(ang(0, 180, -90))	
+        Count = Count + 5
+    }
+}
+
+# Funcao que Levanta os Alvos
+function void performTargetAnimations()
+{
+    # Os Alvos Levantados no modo Normal (nao aleatorio)
+    # Sao Definidos Aqui:
+    local ShortSequence = array("5|20|25", "5|10|15", "10|15|25")
+    local NormalSequence = array("5|15|25", "10|15|20", "10|15|25")
+    local LongSequence = array("10|15|20", "5|20|25", "5|10|15")
+    
+    #Modo Aleatorio
+    if(Aleatorio == 1)
+    {
+        timer("pickrandom", 2000)
+        if (clk("pickrandom")) {RandomTarget = randint(1, 5)*5, RandomCount = 0, A1 = 1}
+        
+        if (changed(RandomTarget))
+        {
+            killTargets(TempArray, 0)
+        }
+        
+        if (Init == 1 && OnlyBullets == 1)
+        {
+            if(A1 == 1 && Init == 1) 
+            {
+                timer("wait4", 200)
+                if(clk("wait4")) {TempArray[RandomTarget, entity]:setAng(ang(0, 180, 0)), stoptimer("wait4")}
+                if(detectDamage() != noentity()) {TempArray[RandomTarget, entity]:setAng(ang(0, 180, -90)), A1 = 0}
+            }
+            
+            if(A1 == 0)
+            {
+                stoptimer("pickrandom")
+                
+                RandomCount = 0
+                killTargets(TempArray, 0)
+                RandomTarget = randint(1, 5)*5
+                A1 = 1
+            }
+        }
+        else
+        {
+            killTargets(TempArray, 0)
+        }
+    }
+    
+    #Modo Normal
+    if (Aleatorio == 0)
+    {
+        timer("pickrandom2", 6000)
+        if (clk("pickrandom2")) {FixedTarget++, RandomCount = 0, A1 = 1, A2 = 1, A3 = 1}
+        
+        if(FixedTarget <= 3)
+        {
+            if (Distancia == "Short"){TheSeq = ShortSequence[FixedTarget, string]:explode("|")}
+            if (Distancia == "Normal"){TheSeq = NormalSequence[FixedTarget, string]:explode("|")}
+            if (Distancia == "Long"){TheSeq = LongSequence[FixedTarget, string]:explode("|")}
+        }
+        else {FixedTarget = 1}
+        
+        if(changed(FixedTarget))
+        {
+            killTargets(TempArray, 0)
+        }
+        
+        local DmgReturn = detectDamage()
+        
+        if (Init == 1 && OnlyBullets == 1)
+        {
+            if(A1 == 1) 
+            {
+                timer("wait", 200)
+                if(clk("wait")) {TempArray[TheSeq[1, string]:toNumber(), entity]:setAng(ang(0, 180, 0)), stoptimer("wait")}
+                
+                if(DmgReturn == TempArray[TheSeq[1, string]:toNumber(), entity]) 
+                {TempArray[TheSeq[1, string]:toNumber(), entity]:setAng(ang(0, 180, -90)), A1 = 0}
+            }
+            
+            if(A2 == 1) 
+            {
+                timer("wait2", 200)
+                if(clk("wait2")) {TempArray[TheSeq[2, string]:toNumber(), entity]:setAng(ang(0, 180, 0)), stoptimer("wait2")}
+                
+                if(DmgReturn == TempArray[TheSeq[2, string]:toNumber(), entity]) 
+                {TempArray[TheSeq[2, string]:toNumber(), entity]:setAng(ang(0, 180, -90)), A2 = 0}
+            }
+            
+            if(A3 == 1) 
+            {
+                timer("wait3", 200)
+                if(clk("wait3")) {TempArray[TheSeq[3, string]:toNumber(), entity]:setAng(ang(0, 180, 0)), stoptimer("wait3")}
+                
+                if(DmgReturn == TempArray[TheSeq[3, string]:toNumber(), entity]) 
+                {TempArray[TheSeq[3, string]:toNumber(), entity]:setAng(ang(0, 180, -90)), A3 = 0}
+            }
+            
+            if(A1 == 0 && A2 == 0 && A3 == 0)
+            {
+                stoptimer("pickrandom2")
+                
+                RandomCount = 0
+                killTargets(TempArray, 0)
+                FixedTarget++
+                A1 = 1
+                A2 = 1
+                A3 = 1
+            }
+        }
+        else
+        {
+            killTargets(TempArray, 0)
+        }
+    }
+    
+}
+
+# Funcao que Registra os Pontos dos Jogadores e Reseta o Jogo
+function void registerPointsnReset()
+{
+    PointsTable["P1Name", string] = Ply1:name()
+    PointsTable["P1SID", string] = Ply1:steamID()
+    PointsTable["TotalP1", number] = TotalP1
+    PointsTable["AlvosP1", number] = TotalHitsP1
+    PointsTable["P1H", number] = P1H
+    PointsTable["P1C", number] = P1C
+    PointsTable["P1S", number] = P1S
+    PointsTable["P1L", number] = P1L
+    PointsTable["P1E", number] = P1E
+    PointsTable["P1Prec", number] = (PointsTable["P1H", number] + PointsTable["P1C", number] + PointsTable["P1S", number] + PointsTable["P1L", number]) / (PointsTable["P1H", number] + PointsTable["P1C", number] + PointsTable["P1S", number] + PointsTable["P1L", number] + PointsTable["P1Erros", number] + PointsTable["P1E", number])*100
+    PointsTable["P1HPK", number] = PointsTable["P1H", number] / (PointsTable["P1H", number] + PointsTable["P1C", number] + PointsTable["P1S", number] + PointsTable["P1L", number])*100 
+    
+    if (SingleMulti == "Multi")
+    {
+        PointsTable["P2Name", string] = Ply2:name()
+        PointsTable["P2SID", string] = Ply2:steamID()
+        PointsTable["TotalP2", number] = TotalP2
+        PointsTable["AlvosP2", number] = TotalHitsP2
+        PointsTable["P2H", number] = P2H
+        PointsTable["P2C", number] = P2C
+        PointsTable["P2S", number] = P2S
+        PointsTable["P2L", number] = P2L
+        PointsTable["P2E", number] = P2E
+        PointsTable["P2Prec", number] = (PointsTable["P2H", number] + PointsTable["P2C", number] + PointsTable["P2S", number] + PointsTable["P2L", number]) / (PointsTable["P2H", number] + PointsTable["P2C", number] + PointsTable["P2S", number] + PointsTable["P2L", number] + PointsTable["P2Erros", number] + PointsTable["P2E", number])*100
+        PointsTable["P2HPK", number] = PointsTable["P2H", number] / (PointsTable["P2H", number] + PointsTable["P2C", number] + PointsTable["P2S", number] + PointsTable["P2L", number])*100
+    }
+    
+    PointsTable["Distancia", string] = Distancia
+    PointsTable["Tempo", number] = TempoMaximo*60
+    PointsTable["Arma", string] = WeaponMode
+    
+    AuxCont = 0
+    A1 = 1
+    A2 = 1
+    A3 = 1
+    Finish = 1
+    Init = 0
+    
+    killTargets(T_Short, 0)
+    killTargets(T_Normal, 0)
+    killTargets(T_Long, 0)
+}
+
+# Funcao que Administra o Jogo e os Pontos
+function void beginGame()
+{
+    if (SingleMulti == "Single" && Ply1 != noentity())
+    {
+        timer("endround",1000) if(clk("endround")){RoundTime++}
+        
+        if (RoundTime < TempoMaximo*60) {performTargetAnimations()}
+        else {registerPointsnReset(), stoptimer("endround")}
+    }
+    
+    if (SingleMulti == "Multi" && Ply1 != noentity() && Ply2 != noentity() && Ply1 != Ply2)
+    {
+        timer("endround",1000) if(clk("endround")){RoundTime++}
+        
+        if (RoundTime < TempoMaximo*60) {performTargetAnimations()}
+        else {registerPointsnReset(), stoptimer("endround")}
+    }
+}
+
+# Funcao que Detecta a Arma do Player
+# So Abaixa o Alvo se a Arma Bater com a WeaponMode.
+function void weaponMode(Mode:string)
+{ 
+    local P1Wepon = toString(Ply1:weapon())
+    local P2Wepon = toString(Ply2:weapon())
+    local P1WeponCW = Ply1:weapon():type():explode("_")
+    local P2WeponCW = Ply2:weapon():type():explode("_")
+        
+    if (SingleMulti == "Single" && Ply1 != noentity())
+    {
+        if(Mode == "cw") {if(P1WeponCW[1, string] == Mode) {Init = 1} else {Init = 0}}
+        else {if (P1Wepon:find(Mode)){Init = 1} else {Init = 0}}
+    }
+    if(SingleMulti == "Multi" && Ply1 != noentity() && Ply2 != noentity())
+    {
+        if(Mode == "cw") {if (P1WeponCW[1, string] == Mode && P2WeponCW[1, string] == Mode) {Init = 1} else {Init = 0}}
+        else {if (P1Wepon:find(Mode) && P2Wepon:find(Mode)){Init = 1} else {Init = 0}}
+    }
+    
+}
+
+function void resetAllValues()
+{
+    killTargets(T_Short, 0)
+    killTargets(T_Normal, 0)
+    killTargets(T_Long, 0)
+    
+    #Points
+    TotalP1 = 0
+    TotalP2 = 0
+    TotalHitsP1 = 0
+    TotalHitsP2 = 0
+    P1H = 0
+    P1C = 0
+    P1S = 0
+    P1L = 0
+    P1E = 0
+    P2H = 0
+    P2C = 0
+    P2S = 0
+    P2L = 0
+    P2E = 0
+    
+    #Misc
+    A1 = 1
+    A2 = 1
+    A3 = 1
+    RoundTime = 0
+    Finish = 0
+    AuxCont = 0
+    Init = 0
+}
+
+if (Start == 1) {weaponMode(WeaponMode), beginGame()}
+elseif (Start == 0) {resetAllValues()}
